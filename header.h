@@ -29,30 +29,30 @@ class Vec3d{
 
 
 	//addition and subtraction of vectors
-	Vec3d operator+(const Vec3d& v) const {
+	Vec3d operator+(const Vec3d v) const {
 		return Vec3d(x + v.x, y + v.y, z + v.z);
 	}
-	Vec3d operator-(const Vec3d& v) const {
+	Vec3d operator-(const Vec3d v) const {
 		return Vec3d(x - v.x, y - v.y, z - v.z);
 	}
 
 	//multiplication of vector by scalar
-	Vec3d operator*(const float& k) const {
+	Vec3d operator*(float k) {
 		return Vec3d(x * k, y * k, z * k);
 	}
 
 	//division of vector by scalar
-	Vec3d operator/(const float& k) const {
+	Vec3d operator/(float k) {
 		return Vec3d(x / k, y / k, z / k);
 	}
 
 	//dot product
-	float dot_product(const Vec3d& v) const {
+	float dot_product(Vec3d v) {
 		return x * v.x + y * v.y + z * v.z;
 	}
 
 	//length
-	float vec_length(Vec3d& v) {
+	float vec_length(Vec3d v) {
 		return sqrt(dot_product(v));
 	}
 
@@ -191,7 +191,7 @@ public:
 
 
 
-	Vec3d operator*(Vec3d &i)
+	Vec3d operator*(Vec3d i)
 	{
 		Vec3d v;
 		v.x = i.x * m[0][0] + i.y * m[1][0] + i.z * m[2][0] + i.w * m[3][0];
@@ -202,7 +202,7 @@ public:
 	}
 	
 
-	Mat4 operator*(Mat4 &m2){
+	Mat4 operator*(Mat4 m2){
 		Mat4 matrix;
 		for (int c = 0; c < 4; c++)
 			for (int r = 0; r < 4; r++)
