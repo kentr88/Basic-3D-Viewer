@@ -5,7 +5,6 @@ This project is an implementation of a 3D Graphics Engine, originally developed 
 ## Features
 
 * **Adapted from Console to OpenGL** : This project has been adapted from a console-based application to use OpenGL. This allows for more powerful and efficient rendering of 3D graphics.
-* **Based on Javidx9's Work** : This project is based on the work of Javidx9, a well-known figure in the programming community. His original console-based 3D engine served as the foundation for this project.
 * **File Loading** : The `olcEngine3D` class constructor also takes a filename as a parameter, allowing for 3D models to be loaded from files.
 * **4x4 View Matrix and Camera Implementation** : The engine uses a 4x4 matrix for transformations and camera implementation. This allows for complex transformations and camera movements, including panning and pitch/yaw adjustments.
 * **Keyboard and Mouse Controls** : The engine supports keyboard inputs for panning and mouse inputs for pitch/yaw adjustments. This allows for a more interactive and immersive user experience.
