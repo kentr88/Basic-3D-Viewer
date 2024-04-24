@@ -73,7 +73,7 @@ class GameEngine3D{
 private:
 	Mesh meshCube;
 	Mat4 matProj;	// Matrix that converts from view space to screen space
-	Camera camera;
+	Camera camera = Camera(Vec3d(0, 0, -5));
 	int windowWidth;
 	int windowHeight;
 	GLFWwindow* window;
@@ -190,24 +190,12 @@ private:
 		return 0;
 	}
 
-	void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, float dp){
-		float vertices[] = {
-			(float) x1, (float) y1, 0,
-			(float) x2, (float) y2, 0,
-			(float) x3, (float) y3, 0
-		};
-
-		//normalise verticies -1 to 1
-		vertices[0] = (vertices[0] / (windowWidth / 2)) - 1;
-		vertices[1] = (vertices[1] / (windowHeight / 2)) - 1;
-		vertices[3] = (vertices[3] / (windowWidth / 2)) - 1;
-		vertices[4] = (vertices[4] / (windowHeight / 2)) - 1;
-		vertices[6] = (vertices[6] / (windowWidth / 2)) - 1;
-		vertices[7] = (vertices[7] / (windowHeight / 2)) - 1;
-
-		glColor3f(dp, dp, dp);
-		glVertexPointer(3, GL_FLOAT, 0, vertices);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+	void drawTriangle(vector<array<float, 9>> triangles, vector<float> colours){
+		for(int i = 0; i < (int) triangles.size(); i++){
+			glColor3f(colours[i], colours[i], colours[i]);
+			glVertexPointer(3, GL_FLOAT, 0, &triangles[i]);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		}
 	}
 
 	bool GraphicsInit(){
@@ -255,45 +243,24 @@ public:
 	}
 
 	bool Render(float fElapsedTime){
-
-		// Set up "World Tranmsform" though not updating theta 
-		// makes this a bit redundant
-		Mat4 matRotZ = Mat4::makeRotationZ(0.0f);
-		Mat4 matRotX = Mat4::makeRotationX(0.0f);
-
-
-		Mat4 matTrans = Mat4::makeTranslation(0.0f, 0.0f, 5.0f);
-
-
 		Mat4 matWorld = Mat4::makeIdentity();	// Form World Matrix
-		matWorld = matRotZ * matRotX; // Transform by rotation
-		matWorld = matWorld * matTrans; // Transform by translation
 
-		// Create "Point At" Matrix for camera
-		Vec3d vUp = { 0,1,0 };
-		Vec3d vTarget = { 0,0,1 };
-		Mat4 matRotY = Mat4::makeRotationY(camera.fYaw);
-		Mat4 matRotX2 = Mat4::makeRotationX(camera.fPitch);
-		Mat4 matCameraRot = matRotX2 * matRotY;
-		camera.lookDir = matCameraRot * vTarget;
-		vTarget = camera.pos + camera.lookDir;
-		Mat4 matCamera = Mat4::pointAt(camera.pos, vTarget, vUp);
-
-		// Make view matrix from camera
-		Mat4 matView = matCamera.quickInverse();
+		// Get view matrix from camera class
+		Mat4 matView = camera.matView();
 
 		// Store triagles for rastering later
-		vector<Triangle> vecTrianglesToRaster;
+		vector<Triangle> vecTrianglesToClip;
+		vector<array<float, 9>> trianglesToDraw;
+		vector<float> coloursToDraw;
 
 		// Draw Triangles
-		for (auto tri : meshCube.tris)
-		{
+		for (auto tri : meshCube.tris){
 			Triangle triProjected, triTransformed, triViewed;
 
 			// World Matrix Transform
-			triTransformed.p[0] = matWorld * tri.p[0];
-			triTransformed.p[1] = matWorld * tri.p[1];
-			triTransformed.p[2] = matWorld * tri.p[2];
+			for(int i = 0; i < 3; i++){
+				triTransformed.p[i] = matWorld * tri.p[i];
+			}
 
 			// Calculate Triangle Normal
 			Vec3d normal, line1, line2;
@@ -313,28 +280,21 @@ public:
 
 
 			// If ray is aligned with normal, then Triangle is visible
-			if (normal.dot_product(vCameraRay) < 0.0f)
-			{
+			if (normal.dot_product(vCameraRay) < 0.0f){
 				// Illumination
 				Vec3d light_direction = { 0.0f, 1.0f, -0.5f };
 				light_direction = light_direction.normalise();
 
 				// How "aligned" are light direction and Triangle surface normal?
 				float dp = max(0.2f, (float)(light_direction.dot_product(normal) * 1));
-				
-				
 				dp = min(dp, 0.85f);
-				//std::cout << dp << std::endl;
-				//std::cout << Vector_DotProduct(light_direction, normal) << std::endl;
 
-				// Choose console colours as required (much easier with RGB)
-				//CHAR_INFO c = GetColour(dp);
 				triTransformed.col = dp;
 
 				// Convert World Space --> View Space
-				triViewed.p[0] = matView * triTransformed.p[0];
-				triViewed.p[1] = matView * triTransformed.p[1];
-				triViewed.p[2] = matView * triTransformed.p[2];
+				for(int i = 0; i < 3; i++){
+					triViewed.p[i] = matView * triTransformed.p[i];
+				}
 				triViewed.col = triTransformed.col;
 
 				// Clip Viewed Triangle against near plane, this could form two additional
@@ -345,59 +305,49 @@ public:
 
 				// We may end up with multiple triangles form the clip, so project as
 				// required
-				for (int n = 0; n < nClippedTriangles; n++)
-				{
-					// Project triangles from 3D --> 2D
-					triProjected.p[0] = matProj * clipped[n].p[0];
-					triProjected.p[1] = matProj * clipped[n].p[1];
-					triProjected.p[2] = matProj * clipped[n].p[2];
+				for (int n = 0; n < nClippedTriangles; n++){
+					Vec3d vOffsetView = { 1,1,0 };
+
+					//for each point in the triangle
+					for (int i = 0; i < 3; i++){
+						// Project triangles from 3D --> 2D
+						triProjected.p[i] = matProj * clipped[n].p[i];
+
+						// Scale into view, we moved the normalising into cartesian space
+						// out of the matrix.vector function from the previous videos, so
+						// do this manually
+						triProjected.p[i] = triProjected.p[i] / triProjected.p[i].w;
+
+						// X/Y are inverted so put them back
+						triProjected.p[i].x *= -1.0f;
+						triProjected.p[i].y *= 1.0f;
+
+						// Offset verts into visible normalised space
+						triProjected.p[i] = triProjected.p[i] + vOffsetView;
+
+						// Scale into view
+						triProjected.p[i].x *= 0.5f * (float)windowWidth;
+						triProjected.p[i].y *= 0.5f * (float)windowHeight;
+					}
 					triProjected.col = clipped[n].col;
 
-					// Scale into view, we moved the normalising into cartesian space
-					// out of the matrix.vector function from the previous videos, so
-					// do this manually
-					triProjected.p[0] = triProjected.p[0] / triProjected.p[0].w;
-					triProjected.p[1] = triProjected.p[1] / triProjected.p[1].w;
-					triProjected.p[2] = triProjected.p[2] / triProjected.p[2].w;
-
-					// X/Y are inverted so put them back
-					triProjected.p[0].x *= -1.0f;
-					triProjected.p[1].x *= -1.0f;
-					triProjected.p[2].x *= -1.0f;
-					triProjected.p[0].y *= 1.0f;
-					triProjected.p[1].y *= 1.0f;
-					triProjected.p[2].y *= 1.0f;
-
-					// Offset verts into visible normalised space
-					Vec3d vOffsetView = { 1,1,0 };
-					triProjected.p[0] = triProjected.p[0] + vOffsetView;
-					triProjected.p[1] = triProjected.p[1] + vOffsetView;
-					triProjected.p[2] = triProjected.p[2] + vOffsetView;
-					triProjected.p[0].x *= 0.5f * (float)windowWidth;
-					triProjected.p[0].y *= 0.5f * (float)windowHeight;
-					triProjected.p[1].x *= 0.5f * (float)windowWidth;
-					triProjected.p[1].y *= 0.5f * (float)windowHeight;
-					triProjected.p[2].x *= 0.5f * (float)windowWidth;
-					triProjected.p[2].y *= 0.5f * (float)windowHeight;
-
 					// Store Triangle for sorting
-					vecTrianglesToRaster.push_back(triProjected);
+					vecTrianglesToClip.push_back(triProjected);
 				}			
 			}
 		}
 
 		// Sort triangles from back to front
-		sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Triangle &t1, Triangle &t2){
+		sort(vecTrianglesToClip.begin(), vecTrianglesToClip.end(), [](Triangle &t1, Triangle &t2){
 			float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
 			float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
 			return z1 > z2;
 		});
 
-		// Clear Screen - done in main function
 
 		// Loop through all transformed, viewed, projected, and sorted triangles
-		for (auto &triToRaster : vecTrianglesToRaster)
-		{
+		// Clip triangles against all four screen edges and normalise to OpenGL screen coordinates
+		for (auto &triToRaster : vecTrianglesToClip){
 			// Clip triangles against all four screen edges, this could yield
 			// a bunch of triangles, so create a queue that we traverse to 
 			//  ensure we only test new triangles generated against planes
@@ -408,11 +358,9 @@ public:
 			listTriangles.push_back(triToRaster);
 			int nNewTriangles = 1;
 
-			for (int p = 0; p < 4; p++)
-			{
+			for (int p = 0; p < 4; p++){
 				int nTrisToAdd = 0;
-				while (nNewTriangles > 0)
-				{
+				while (nNewTriangles > 0){
 					// Take Triangle from front of queue
 					Triangle test = listTriangles.front();
 					listTriangles.pop_front();
@@ -442,13 +390,21 @@ public:
 
 
 			// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
-			for (auto &t : listTriangles)
-			{
-				drawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.col);
-				//DrawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, PIXEL_SOLID, FG_BLACK);
+			for (auto &t : listTriangles){
+				// normalise to screen and push to draw list
+				for(int i = 0; i < 3; i++){
+					t.p[i].x = (t.p[i].x / (windowWidth / 2)) - 1;
+					t.p[i].y = (t.p[i].y / (windowHeight / 2)) - 1;					
+				}
+
+				std::array<float, 9> point{t.p[0].x, t.p[0].y, 0.0f, t.p[1].x, t.p[1].y, 0.0f, t.p[2].x, t.p[2].y, 0.0f};
+				trianglesToDraw.push_back(point);
+				coloursToDraw.push_back(t.col);				
 			}
 		}
 
+
+		drawTriangle(trianglesToDraw, coloursToDraw);
 
 		return true;
 	}
@@ -589,8 +545,7 @@ public:
 
 
 
-int main()
-{
+int main(){
 	GameEngine3D game(1200, 800, "teapot.obj");
 
 	game.Run();

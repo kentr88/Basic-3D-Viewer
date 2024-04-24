@@ -8,11 +8,13 @@
 #include <string>
 #include <chrono>
 #include <vector>
+#include <array>
 #include <list>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+class Mat4;
 
 class Vec3d{
 	public:
@@ -73,13 +75,7 @@ public:
 	float col;
 };
 
-class Camera {
-public:
-	Vec3d pos;	// Location of camera in world space
-	Vec3d lookDir;	// Direction vector along the direction camera points
-	float fYaw;		// FPS Camera rotation in XZ plane
-	float fPitch;	// FPS Camera rotation in YZ plane
-};
+
 
 
 class Mesh {
@@ -215,7 +211,7 @@ public:
 	}
 
 
-	static Mat4 pointAt(Vec3d &pos, Vec3d &target, Vec3d &up){
+	static Mat4 pointAt(Vec3d pos, Vec3d target, Vec3d up){
 		// Calculate new forward direction
 		Vec3d newForward = target - pos;
 		newForward = newForward.normalise();
@@ -251,4 +247,32 @@ public:
 		return matrix;
 	}
 
+};
+
+
+class Camera {
+public:
+	Vec3d pos;	// Location of camera in world space
+	Vec3d lookDir;	// Direction vector along the direction camera points
+	float fYaw;		// FPS Camera rotation in XZ plane
+	float fPitch;	// FPS Camera rotation in YZ plane
+
+	Camera() = default;
+	Camera(Vec3d pos) : pos(pos) {
+		//look at z by default
+		lookDir = Vec3d(0, 0, 1);
+	}
+
+
+	Mat4 matView() {
+		// Create "Point At" Matrix for camera
+		Vec3d vTarget = { 0,0,1 };
+		Mat4 matRotX = Mat4::makeRotationX(fPitch);
+		Mat4 matRotY = Mat4::makeRotationY(fYaw);
+		Mat4 matCameraRot = matRotX * matRotY;
+		lookDir = matCameraRot * vTarget;
+		vTarget = pos + lookDir;
+		Mat4 matCamera = Mat4::pointAt(pos, vTarget, { 0,1,0 });
+		return matCamera.quickInverse();
+	}
 };
