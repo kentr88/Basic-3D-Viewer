@@ -622,7 +622,7 @@ public:
 		glfwSetErrorCallback(errorCallback);
 
 		// Create a GLFW window
-		window = glfwCreateWindow(800, 600, "OpenGL Triangle", NULL, NULL);
+		window = glfwCreateWindow(800, 600, "Basic 3D Viewer", NULL, NULL);
 		if (!window) {
 			std::cerr << "Failed to create GLFW window" << std::endl;
 			glfwTerminate();
@@ -745,9 +745,6 @@ public:
 					vCamera.y -= 8.0f * fElapsedTime;
 				}
 					
-	
-
-				// Handle Mouse Input - Check for window events
 
 				// Handle Frame Update
 

@@ -11,6 +11,14 @@ This project is an implementation of a 3D Graphics Engine, originally developed 
 * **Keyboard and Mouse Controls** : The engine supports keyboard inputs for panning and mouse inputs for pitch/yaw adjustments. This allows for a more interactive and immersive user experience.
 * **Triangle Clipping** : The engine includes functionality for triangle clipping. This is a crucial feature for any 3D engine, as it ensures that only the visible parts of an object are rendered, improving performance and visual accuracy.
 
+## Screenshots
+
+![1713924959996](image/read/1713924959996.png)
+
+![1713925104265](image/read/1713925104265.png)
+
+
+
 ## Compilation
 
 The project uses a Makefile for compilation. To compile the project, use the following command:
