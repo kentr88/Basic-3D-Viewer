@@ -56,7 +56,7 @@ This is a 3D Graphics engine that has been adapted from working in the console t
 Compile
 g++ -o run main.cpp -lglfw3 -lkernel32 -lopengl32 -lglu32 -lglew32 -Wall -lwinmm -Werror -pedantic
 
-Last Update: 24/04/2024
+Last Update: 24/04/2025
 
 */
 
@@ -78,8 +78,6 @@ private:
 	int windowHeight;
 	GLFWwindow* window;
 	std::string filename;
-
-	
 
 	Vec3d Vector_IntersectPlane(Vec3d &plane_p, Vec3d &plane_n, Vec3d &lineStart, Vec3d &lineEnd){
 		plane_n = plane_n.normalise();
