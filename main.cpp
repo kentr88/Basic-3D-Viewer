@@ -56,7 +56,7 @@ This is a 3D Graphics engine that has been adapted from working in the console t
 Compile
 g++ -o run main.cpp -lglfw3 -lkernel32 -lopengl32 -lglu32 -lglew32 -Wall -lwinmm -Werror -pedantic
 
-Last Update: 24/04/2025
+Last Update: 25/04/2024
 
 */
 
@@ -79,7 +79,7 @@ private:
 	GLFWwindow* window;
 	std::string filename;
 
-	Vec3d Vector_IntersectPlane(Vec3d plane_p, Vec3d plane_n, Vec3d lineStart, Vec3d lineEnd){
+	Vec3d Vector_IntersectPlane(Vec3d &plane_p, Vec3d &plane_n, Vec3d &lineStart, Vec3d &lineEnd){
 		plane_n = plane_n.normalise();
 		float plane_d = -plane_n.dot_product(plane_p);
 		float ad = lineStart.dot_product(plane_n);
@@ -90,7 +90,7 @@ private:
 		return lineStart + lineToIntersect;
 	}
 
-	int Triangle_ClipAgainstPlane(Vec3d plane_p, Vec3d plane_n, Triangle in_tri, Triangle out_tri1, Triangle out_tri2){
+	int Triangle_ClipAgainstPlane(Vec3d plane_p, Vec3d plane_n, Triangle &in_tri, Triangle &out_tri1, Triangle &out_tri2){
 		// Make sure plane normal is indeed normal
 		plane_n = plane_n.normalise();
 

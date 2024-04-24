@@ -29,10 +29,10 @@ class Vec3d{
 
 
 	//addition and subtraction of vectors
-	Vec3d operator+(const Vec3d v) const {
+	Vec3d operator+(Vec3d v){
 		return Vec3d(x + v.x, y + v.y, z + v.z);
 	}
-	Vec3d operator-(const Vec3d v) const {
+	Vec3d operator-(Vec3d v) {
 		return Vec3d(x - v.x, y - v.y, z - v.z);
 	}
 
