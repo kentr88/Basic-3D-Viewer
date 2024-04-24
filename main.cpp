@@ -65,20 +65,11 @@ Last Update: 24/04/2024
 
 using namespace std;
 
-
 void errorCallback(int error, const char* description) {
-    std::cerr << "Error: " << description << std::endl;
+  	std::cerr << "Error: " << description << std::endl;
 }
 
-
-class olcEngine3D{
-public:
-	olcEngine3D(int w, int h, string _filename){
-		windowWidth = w;
-		windowHeight = h;
-		filename = _filename;
-	}
-
+class GameEngine3D{
 private:
 	Mesh meshCube;
 	Mat4 matProj;	// Matrix that converts from view space to screen space
@@ -87,6 +78,8 @@ private:
 	int windowHeight;
 	GLFWwindow* window;
 	std::string filename;
+
+	
 
 	Vec3d Vector_IntersectPlane(Vec3d &plane_p, Vec3d &plane_n, Vec3d &lineStart, Vec3d &lineEnd){
 		plane_n = plane_n.normalise();
@@ -197,9 +190,27 @@ private:
 		return 0;
 	}
 
+	void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, float dp){
+		float vertices[] = {
+			(float) x1, (float) y1, 0,
+			(float) x2, (float) y2, 0,
+			(float) x3, (float) y3, 0
+		};
 
-public:
-	bool OnUserCreate(){
+		//normalise verticies -1 to 1
+		vertices[0] = (vertices[0] / (windowWidth / 2)) - 1;
+		vertices[1] = (vertices[1] / (windowHeight / 2)) - 1;
+		vertices[3] = (vertices[3] / (windowWidth / 2)) - 1;
+		vertices[4] = (vertices[4] / (windowHeight / 2)) - 1;
+		vertices[6] = (vertices[6] / (windowWidth / 2)) - 1;
+		vertices[7] = (vertices[7] / (windowHeight / 2)) - 1;
+
+		glColor3f(dp, dp, dp);
+		glVertexPointer(3, GL_FLOAT, 0, vertices);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
+
+	bool GraphicsInit(){
 		// Load object file
 		meshCube.LoadFromObjectFile(filename);
 
@@ -208,7 +219,42 @@ public:
 		return true;
 	}
 
-	bool OnUserUpdate(float fElapsedTime){
+
+public:
+	GameEngine3D(int w, int h, string _filename){
+		windowWidth = w;
+		windowHeight = h;
+		filename = _filename;
+
+		// Initialize GLFW
+		if (!glfwInit()) {
+			std::cerr << "Failed to initialize GLFW" << std::endl;
+			exit(-1);
+		}
+
+		// Set the error callback
+		glfwSetErrorCallback(errorCallback);
+
+		// Create a GLFW window
+		window = glfwCreateWindow(windowWidth, windowHeight, "Basic 3D Viewer", NULL, NULL);
+		if (!window) {
+			std::cerr << "Failed to create GLFW window" << std::endl;
+			glfwTerminate();
+			exit(-1);
+		}
+
+		// Make the window's context current
+		glfwMakeContextCurrent(window);
+
+		
+		// Create user resources as part of this thread
+		if (!GraphicsInit()){
+			std::cerr << "Failed on user create" << std::endl;
+			exit(-1);
+		}
+	}
+
+	bool Render(float fElapsedTime){
 
 		// Set up "World Tranmsform" though not updating theta 
 		// makes this a bit redundant
@@ -398,7 +444,7 @@ public:
 			// Draw the transformed, viewed, clipped, projected, sorted, clipped triangles
 			for (auto &t : listTriangles)
 			{
-				FillTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.col);
+				drawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, t.col);
 				//DrawTriangle(t.p[0].x, t.p[0].y, t.p[1].x, t.p[1].y, t.p[2].x, t.p[2].y, PIXEL_SOLID, FG_BLACK);
 			}
 		}
@@ -407,62 +453,7 @@ public:
 		return true;
 	}
 
-
-	void FillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, float dp){
-		float vertices[] = {
-			(float) x1, (float) y1, 0,
-			(float) x2, (float) y2, 0,
-			(float) x3, (float) y3, 0
-		};
-
-		//normalise verticies -1 to 1
-		vertices[0] = (vertices[0] / (windowWidth / 2)) - 1;
-		vertices[1] = (vertices[1] / (windowHeight / 2)) - 1;
-		vertices[3] = (vertices[3] / (windowWidth / 2)) - 1;
-		vertices[4] = (vertices[4] / (windowHeight / 2)) - 1;
-		vertices[6] = (vertices[6] / (windowWidth / 2)) - 1;
-		vertices[7] = (vertices[7] / (windowHeight / 2)) - 1;
-
-		//cout << dp << endl;
-
-		glColor3f(dp, dp, dp);
-		glVertexPointer(3, GL_FLOAT, 0, vertices);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-	}
-
-
 	void Run(){
-
-		// Initialize GLFW
-		if (!glfwInit()) {
-			std::cerr << "Failed to initialize GLFW" << std::endl;
-			exit(-1);
-		}
-
-		// Set the error callback
-		glfwSetErrorCallback(errorCallback);
-
-		// Create a GLFW window
-		window = glfwCreateWindow(windowWidth, windowHeight, "Basic 3D Viewer", NULL, NULL);
-		if (!window) {
-			std::cerr << "Failed to create GLFW window" << std::endl;
-			glfwTerminate();
-			exit(-1);
-		}
-
-		// Make the window's context current
-		glfwMakeContextCurrent(window);
-
-
-
-		
-		// Create user resources as part of this thread
-		if (!OnUserCreate()){
-			std::cerr << "Failed on user create" << std::endl;
-			exit(-1);
-		}
-			
-
 
 		auto tp1 = std::chrono::system_clock::now();
 		auto tp2 = std::chrono::system_clock::now();
@@ -562,7 +553,7 @@ public:
 				glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT);
 
-				OnUserUpdate(fElapsedTime);
+				Render(fElapsedTime);
 
 
 				// Disable the vertex array functionality
@@ -592,6 +583,7 @@ public:
     	glfwTerminate();
     	return;
 	}
+
 };
 
 
@@ -601,9 +593,9 @@ public:
 
 int main()
 {
-	olcEngine3D demo(1200, 800, "teapot.obj");
+	GameEngine3D game(1200, 800, "mountains.obj");
 
-	demo.Run();
+	game.Run();
 
     return 0;
 }
