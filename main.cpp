@@ -82,10 +82,7 @@ public:
 private:
 	Mesh meshCube;
 	Mat4 matProj;	// Matrix that converts from view space to screen space
-	Vec3d vCamera;	// Location of camera in world space
-	Vec3d vLookDir;	// Direction vector along the direction camera points
-	float fYaw;		// FPS Camera rotation in XZ plane
-	float fPitch;
+	Camera camera;
 	int windowWidth;
 	int windowHeight;
 	GLFWwindow* window;
@@ -202,8 +199,7 @@ private:
 
 
 public:
-	bool OnUserCreate()
-	{
+	bool OnUserCreate(){
 		// Load object file
 		meshCube.LoadFromObjectFile(filename);
 
@@ -230,12 +226,12 @@ public:
 		// Create "Point At" Matrix for camera
 		Vec3d vUp = { 0,1,0 };
 		Vec3d vTarget = { 0,0,1 };
-		Mat4 matRotY = Mat4::makeRotationY(fYaw);
-		Mat4 matRotX2 = Mat4::makeRotationX(fPitch);
+		Mat4 matRotY = Mat4::makeRotationY(camera.fYaw);
+		Mat4 matRotX2 = Mat4::makeRotationX(camera.fPitch);
 		Mat4 matCameraRot = matRotX2 * matRotY;
-		vLookDir = matCameraRot * vTarget;
-		vTarget = vCamera + vLookDir;
-		Mat4 matCamera = Mat4::pointAt(vCamera, vTarget, vUp);
+		camera.lookDir = matCameraRot * vTarget;
+		vTarget = camera.pos + camera.lookDir;
+		Mat4 matCamera = Mat4::pointAt(camera.pos, vTarget, vUp);
 
 		// Make view matrix from camera
 		Mat4 matView = matCamera.quickInverse();
@@ -267,7 +263,7 @@ public:
 			normal = normal.normalise();
 			
 			// Get Ray from Triangle to camera
-			Vec3d vCameraRay = triTransformed.p[0] - vCamera;
+			Vec3d vCameraRay = triTransformed.p[0] - camera.pos;
 
 
 			// If ray is aligned with normal, then Triangle is visible
@@ -435,7 +431,7 @@ public:
 	}
 
 
-	void GameThread(){
+	void Run(){
 
 		// Initialize GLFW
 		if (!glfwInit()) {
@@ -447,7 +443,7 @@ public:
 		glfwSetErrorCallback(errorCallback);
 
 		// Create a GLFW window
-		window = glfwCreateWindow(800, 600, "Basic 3D Viewer", NULL, NULL);
+		window = glfwCreateWindow(windowWidth, windowHeight, "Basic 3D Viewer", NULL, NULL);
 		if (!window) {
 			std::cerr << "Failed to create GLFW window" << std::endl;
 			glfwTerminate();
@@ -501,44 +497,21 @@ public:
 				xoffset *= sensitivity;
 				yoffset *= sensitivity;
 
-				fYaw += xoffset * fElapsedTime;
-				fPitch += yoffset * fElapsedTime;
+				camera.fYaw += xoffset * fElapsedTime;
+				camera.fPitch += yoffset * fElapsedTime;
 
-
-				// Handle Keyboard Input
-				if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
-					fYaw -= 2.0f * fElapsedTime;
-				}
-
-				if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-					fYaw += 2.0f * fElapsedTime;
-				}
-
-				if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-					fPitch -= 2.0f * fElapsedTime;
-				}
-
-				if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-					fPitch += 2.0f * fElapsedTime;
-				}
-
-				if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
-					glfwSetWindowShouldClose(window, true);
-				}
 
 				//stop pitch going too high or low
-				if(fPitch > 1.5f){
-					fPitch = 1.5f;
+				if(camera.fPitch > 1.5f){
+					camera.fPitch = 1.5f;
 				}
 
-				if(fPitch < -1.5f){
-					fPitch = -1.5f;
+				if(camera.fPitch < -1.5f){
+					camera.fPitch = -1.5f;
 				}
-				
 
-
-				Vec3d vForward = vLookDir * (8.0f * fElapsedTime);
-				Vec3d vRight = { vLookDir.z, 0, -vLookDir.x };
+				Vec3d vForward = camera.lookDir * (8.0f * fElapsedTime);
+				Vec3d vRight = { camera.lookDir.z, 0, -camera.lookDir.x };
 				vRight = vRight * (8.0f * fElapsedTime);
 
 				Vec3d vUp = { 0,1,0 };
@@ -546,31 +519,36 @@ public:
 
 				// Standard FPS Control scheme, but turn instead of strafe
 				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
-					vCamera = vCamera + vForward;
+					camera.pos = camera.pos + vForward;
 				}
 
 				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
-					vCamera = vCamera - vForward;
+					camera.pos = camera.pos - vForward;
 				}
 
 				if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
 					//pan camera left
-					vCamera = vCamera + vRight;
+					camera.pos = camera.pos + vRight;
 				}
 
 				if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
 					//pan camera right
-					vCamera = vCamera - vRight;
+					camera.pos = camera.pos - vRight;
 				}
 
 				if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
 					//move camera up
-					vCamera.y += 8.0f * fElapsedTime;
+					camera.pos.y += 8.0f * fElapsedTime;
 				}
 
 				if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
 					//move camera down
-					vCamera.y -= 8.0f * fElapsedTime;
+					camera.pos.y -= 8.0f * fElapsedTime;
+				}
+
+				//escape
+				if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+					glfwSetWindowShouldClose(window, true);
 				}
 					
 
@@ -623,9 +601,9 @@ public:
 
 int main()
 {
-	olcEngine3D demo(800, 600, "teapot.obj");
+	olcEngine3D demo(1200, 800, "teapot.obj");
 
-	demo.GameThread();
+	demo.Run();
 
     return 0;
 }

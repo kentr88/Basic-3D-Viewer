@@ -73,6 +73,15 @@ public:
 	float col;
 };
 
+class Camera {
+public:
+	Vec3d pos;	// Location of camera in world space
+	Vec3d lookDir;	// Direction vector along the direction camera points
+	float fYaw;		// FPS Camera rotation in XZ plane
+	float fPitch;	// FPS Camera rotation in YZ plane
+};
+
+
 class Mesh {
 public:
 	std::vector<Triangle> tris;
