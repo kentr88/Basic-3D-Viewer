@@ -17,11 +17,15 @@ This project is an implementation of a 3D Graphics Engine, originally developed 
 
 ![1713925104265](image/read/1713925104265.png)
 
-
-
 ## Compilation
 
 The project uses a Makefile for compilation. To compile the project, use the following command:
+
+**make**
+
+To build from scratch run
+
+**make clean**
 
 **make**
 

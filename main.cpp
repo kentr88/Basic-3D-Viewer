@@ -606,6 +606,9 @@ public:
 
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+		int fps_update = 0;
+		double fps_elapsed_time = 0.0;
+
 		while (!glfwWindowShouldClose(window)){
 			// Run as fast as possible
 			
@@ -720,14 +723,20 @@ public:
 				// Poll for and process events
 				glfwPollEvents();
 
+				// Update Title Bar
+				fps_update++;
+				if (fps_update > 50){
+					double average_fps = 50.0f / fps_elapsed_time;
+					// Update window title with FPS
+					std::string windowTitle = "GLFW game engine - FPS: " + std::to_string(average_fps);
+					glfwSetWindowTitle(window, windowTitle.c_str());
+					fps_update = 0;
+					fps_elapsed_time = 0.0;
+				} else {
+					fps_elapsed_time += fElapsedTime;
+				}
 
-
-				// Update Title & Present Screen Buffer
-				//wchar_t s[256];
-				//glfwSetWindowTitle(window, "GLFW game engine - FPS: " + std::to_string(1.0f / fElapsedTime));
-				//swprintf_s(s, 256, L"OneLoneCoder.com - Console Game Engine - %s - FPS: %3.2f", m_sAppName.c_str(), 1.0f / fElapsedTime);
-
-
+				
 		}
 
 		// Clean up and exit
