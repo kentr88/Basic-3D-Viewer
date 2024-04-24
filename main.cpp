@@ -185,16 +185,16 @@ private:
 	mat4x4 Matrix_PointAt(Vec3d &pos, Vec3d &target, Vec3d &up)
 	{
 		// Calculate new forward direction
-		Vec3d newForward = Vector_Sub(target, pos);
-		newForward = Vector_Normalise(newForward);
+		Vec3d newForward = target - pos;
+		newForward = newForward.normalise();
 
 		// Calculate new Up direction
-		Vec3d a = Vector_Mul(newForward, Vector_DotProduct(up, newForward));
-		Vec3d newUp = Vector_Sub(up, a);
-		newUp = Vector_Normalise(newUp);
+		Vec3d a = newForward * up.dot_product(newForward);
+		Vec3d newUp = up - a;
+		newUp = newUp.normalise();
 
 		// New Right direction is easy, its just cross product
-		Vec3d newRight = Vector_CrossProduct(newUp, newForward);
+		Vec3d newRight = newUp.cross_product(newForward);
 
 		// Construct Dimensioning and Translation Matrix	
 		mat4x4 matrix;
@@ -219,72 +219,27 @@ private:
 		return matrix;
 	}
 
-	Vec3d Vector_Add(Vec3d &v1, Vec3d &v2)
-	{
-		return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
-	}
 
-	Vec3d Vector_Sub(Vec3d &v1, Vec3d &v2)
-	{
-		return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
-	}
-
-	Vec3d Vector_Mul(Vec3d &v1, float k)
-	{
-		return { v1.x * k, v1.y * k, v1.z * k };
-	}
-
-	Vec3d Vector_Div(Vec3d &v1, float k)
-	{
-		return { v1.x / k, v1.y / k, v1.z / k };
-	}
-
-	float Vector_DotProduct(Vec3d &v1, Vec3d &v2)
-	{
-		return v1.x*v2.x + v1.y*v2.y + v1.z * v2.z;
-	}
-
-	float Vector_Length(Vec3d &v)
-	{
-		return sqrtf(Vector_DotProduct(v, v));
-	}
-
-	Vec3d Vector_Normalise(Vec3d &v)
-	{
-		float l = Vector_Length(v);
-		return { v.x / l, v.y / l, v.z / l };
-	}
-
-	Vec3d Vector_CrossProduct(Vec3d &v1, Vec3d &v2)
-	{
-		Vec3d v;
-		v.x = v1.y * v2.z - v1.z * v2.y;
-		v.y = v1.z * v2.x - v1.x * v2.z;
-		v.z = v1.x * v2.y - v1.y * v2.x;
-		return v;
-	}
-
-	Vec3d Vector_IntersectPlane(Vec3d &plane_p, Vec3d &plane_n, Vec3d &lineStart, Vec3d &lineEnd)
-	{
-		plane_n = Vector_Normalise(plane_n);
-		float plane_d = -Vector_DotProduct(plane_n, plane_p);
-		float ad = Vector_DotProduct(lineStart, plane_n);
-		float bd = Vector_DotProduct(lineEnd, plane_n);
+	Vec3d Vector_IntersectPlane(Vec3d &plane_p, Vec3d &plane_n, Vec3d &lineStart, Vec3d &lineEnd){
+		plane_n = plane_n.normalise();
+		float plane_d = -plane_n.dot_product(plane_p);
+		float ad = lineStart.dot_product(plane_n);
+		float bd = lineEnd.dot_product(plane_n);
 		float t = (-plane_d - ad) / (bd - ad);
-		Vec3d lineStartToEnd = Vector_Sub(lineEnd, lineStart);
-		Vec3d lineToIntersect = Vector_Mul(lineStartToEnd, t);
-		return Vector_Add(lineStart, lineToIntersect);
+		Vec3d lineStartToEnd = lineEnd - lineStart;
+		Vec3d lineToIntersect = lineStartToEnd * t;
+		return lineStart + lineToIntersect;
 	}
 
 	int Triangle_ClipAgainstPlane(Vec3d plane_p, Vec3d plane_n, Triangle &in_tri, Triangle &out_tri1, Triangle &out_tri2){
 		// Make sure plane normal is indeed normal
-		plane_n = Vector_Normalise(plane_n);
+		plane_n = plane_n.normalise();
 
 		// Return signed shortest distance from point to plane, plane normal must be normalised
 		auto dist = [&](Vec3d &p)
 		{
 			//Vec3d n = Vector_Normalise(p);
-			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - Vector_DotProduct(plane_n, plane_p));
+			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - plane_n.dot_product(plane_p));
 		};
 
 		// Create two temporary storage arrays to classify points either side of plane
@@ -408,7 +363,7 @@ public:
 		mat4x4 matRotX2 = Matrix_MakeRotationX(fPitch);
 		mat4x4 matCameraRot = Matrix_MultiplyMatrix(matRotX2, matRotY);
 		vLookDir = Matrix_MultiplyVector(matCameraRot, vTarget);
-		vTarget = Vector_Add(vCamera, vLookDir);
+		vTarget = vCamera + vLookDir;
 		mat4x4 matCamera = Matrix_PointAt(vCamera, vTarget, vUp);
 
 		// Make view matrix from camera
@@ -431,28 +386,28 @@ public:
 			Vec3d normal, line1, line2;
 
 			// Get lines either side of Triangle
-			line1 = Vector_Sub(triTransformed.p[1], triTransformed.p[0]);
-			line2 = Vector_Sub(triTransformed.p[2], triTransformed.p[0]);
+			line1 = triTransformed.p[1] - triTransformed.p[0];
+			line2 = triTransformed.p[2] - triTransformed.p[0];
 
 			// Take cross product of lines to get normal to Triangle surface
-			normal = Vector_CrossProduct(line1, line2);
+			normal = line1.cross_product(line2);
 
 			// You normally need to normalise a normal!
-			normal = Vector_Normalise(normal);
+			normal = normal.normalise();
 			
 			// Get Ray from Triangle to camera
-			Vec3d vCameraRay = Vector_Sub(triTransformed.p[0], vCamera);
+			Vec3d vCameraRay = triTransformed.p[0] - vCamera;
 
 
 			// If ray is aligned with normal, then Triangle is visible
-			if (Vector_DotProduct(normal, vCameraRay) < 0.0f)
+			if (normal.dot_product(vCameraRay) < 0.0f)
 			{
 				// Illumination
 				Vec3d light_direction = { 0.0f, 1.0f, -0.5f };
-				light_direction = Vector_Normalise(light_direction);
+				light_direction = light_direction.normalise();
 
 				// How "aligned" are light direction and Triangle surface normal?
-				float dp = max(0.2f, (float)(Vector_DotProduct(light_direction, normal) * 1));
+				float dp = max(0.2f, (float)(light_direction.dot_product(normal) * 1));
 				
 				
 				dp = min(dp, 0.8f);
@@ -488,9 +443,9 @@ public:
 					// Scale into view, we moved the normalising into cartesian space
 					// out of the matrix.vector function from the previous videos, so
 					// do this manually
-					triProjected.p[0] = Vector_Div(triProjected.p[0], triProjected.p[0].w);
-					triProjected.p[1] = Vector_Div(triProjected.p[1], triProjected.p[1].w);
-					triProjected.p[2] = Vector_Div(triProjected.p[2], triProjected.p[2].w);
+					triProjected.p[0] = triProjected.p[0] / triProjected.p[0].w;
+					triProjected.p[1] = triProjected.p[1] / triProjected.p[1].w;
+					triProjected.p[2] = triProjected.p[2] / triProjected.p[2].w;
 
 					// X/Y are inverted so put them back
 					triProjected.p[0].x *= -1.0f;
@@ -502,9 +457,9 @@ public:
 
 					// Offset verts into visible normalised space
 					Vec3d vOffsetView = { 1,1,0 };
-					triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
-					triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
-					triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
+					triProjected.p[0] = triProjected.p[0] + vOffsetView;
+					triProjected.p[1] = triProjected.p[1] + vOffsetView;
+					triProjected.p[2] = triProjected.p[2] + vOffsetView;
 					triProjected.p[0].x *= 0.5f * (float)windowWidth;
 					triProjected.p[0].y *= 0.5f * (float)windowHeight;
 					triProjected.p[1].x *= 0.5f * (float)windowWidth;
@@ -519,8 +474,7 @@ public:
 		}
 
 		// Sort triangles from back to front
-		sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Triangle &t1, Triangle &t2)
-		{
+		sort(vecTrianglesToRaster.begin(), vecTrianglesToRaster.end(), [](Triangle &t1, Triangle &t2){
 			float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
 			float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
 			return z1 > z2;
@@ -709,30 +663,30 @@ public:
 				
 
 
-				Vec3d vForward = Vector_Mul(vLookDir, 8.0f * fElapsedTime);
+				Vec3d vForward = vLookDir * (8.0f * fElapsedTime);
 				Vec3d vRight = { vLookDir.z, 0, -vLookDir.x };
-				vRight = Vector_Mul(vRight, 8.0f * fElapsedTime);
+				vRight = vRight * (8.0f * fElapsedTime);
 
 				Vec3d vUp = { 0,1,0 };
-				vUp = Vector_Mul(vUp, 8.0f * fElapsedTime);
+				vUp = vUp * (8.0f * fElapsedTime);
 
 				// Standard FPS Control scheme, but turn instead of strafe
 				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
-					vCamera = Vector_Add(vCamera, vForward);
+					vCamera = vCamera + vForward;
 				}
 
 				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
-					vCamera = Vector_Sub(vCamera, vForward);
+					vCamera = vCamera - vForward;
 				}
 
 				if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
 					//pan camera left
-					vCamera = Vector_Add(vCamera, vRight);
+					vCamera = vCamera + vRight;
 				}
 
 				if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
 					//pan camera right
-					vCamera = Vector_Sub(vCamera, vRight);
+					vCamera = vCamera - vRight;
 				}
 
 				if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
