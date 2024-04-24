@@ -589,8 +589,6 @@ public:
 
 
 
-
-
 int main()
 {
 	GameEngine3D game(1200, 800, "mountains.obj");
