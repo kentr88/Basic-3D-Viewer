@@ -323,7 +323,7 @@ public:
 				float dp = max(0.2f, (float)(light_direction.dot_product(normal) * 1));
 				
 				
-				dp = min(dp, 0.8f);
+				dp = min(dp, 0.85f);
 				//std::cout << dp << std::endl;
 				//std::cout << Vector_DotProduct(light_direction, normal) << std::endl;
 
@@ -591,7 +591,7 @@ public:
 
 int main()
 {
-	GameEngine3D game(1200, 800, "mountains.obj");
+	GameEngine3D game(1200, 800, "teapot.obj");
 
 	game.Run();
 
