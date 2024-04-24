@@ -81,7 +81,7 @@ public:
 
 private:
 	Mesh meshCube;
-	mat4x4 matProj;	// Matrix that converts from view space to screen space
+	Mat4 matProj;	// Matrix that converts from view space to screen space
 	Vec3d vCamera;	// Location of camera in world space
 	Vec3d vLookDir;	// Direction vector along the direction camera points
 	float fYaw;		// FPS Camera rotation in XZ plane
@@ -90,135 +90,6 @@ private:
 	int windowHeight;
 	GLFWwindow* window;
 	std::string filename;
-
-	Vec3d Matrix_MultiplyVector(mat4x4 &m, Vec3d &i)
-	{
-		Vec3d v;
-		v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
-		v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
-		v.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
-		v.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
-		return v;
-	}
-
-	mat4x4 Matrix_MakeIdentity()
-	{
-		mat4x4 matrix;
-		matrix.m[0][0] = 1.0f;
-		matrix.m[1][1] = 1.0f;
-		matrix.m[2][2] = 1.0f;
-		matrix.m[3][3] = 1.0f;
-		return matrix;
-	}
-
-	mat4x4 Matrix_MakeRotationX(float fAngleRad)
-	{
-		mat4x4 matrix;
-		matrix.m[0][0] = 1.0f;
-		matrix.m[1][1] = cosf(fAngleRad);
-		matrix.m[1][2] = sinf(fAngleRad);
-		matrix.m[2][1] = -sinf(fAngleRad);
-		matrix.m[2][2] = cosf(fAngleRad);
-		matrix.m[3][3] = 1.0f;
-		return matrix;
-	}
-
-	mat4x4 Matrix_MakeRotationY(float fAngleRad)
-	{
-		mat4x4 matrix;
-		matrix.m[0][0] = cosf(fAngleRad);
-		matrix.m[0][2] = sinf(fAngleRad);
-		matrix.m[2][0] = -sinf(fAngleRad);
-		matrix.m[1][1] = 1.0f;
-		matrix.m[2][2] = cosf(fAngleRad);
-		matrix.m[3][3] = 1.0f;
-		return matrix;
-	}
-
-	mat4x4 Matrix_MakeRotationZ(float fAngleRad)
-	{
-		mat4x4 matrix;
-		matrix.m[0][0] = cosf(fAngleRad);
-		matrix.m[0][1] = sinf(fAngleRad);
-		matrix.m[1][0] = -sinf(fAngleRad);
-		matrix.m[1][1] = cosf(fAngleRad);
-		matrix.m[2][2] = 1.0f;
-		matrix.m[3][3] = 1.0f;
-		return matrix;
-	}
-
-	mat4x4 Matrix_MakeTranslation(float x, float y, float z)
-	{
-		mat4x4 matrix;
-		matrix.m[0][0] = 1.0f;
-		matrix.m[1][1] = 1.0f;
-		matrix.m[2][2] = 1.0f;
-		matrix.m[3][3] = 1.0f;
-		matrix.m[3][0] = x;
-		matrix.m[3][1] = y;
-		matrix.m[3][2] = z;
-		return matrix;
-	}
-
-	mat4x4 Matrix_MakeProjection(float fFovDegrees, float fAspectRatio, float fNear, float fFar)
-	{
-		float fFovRad = 1.0f / tanf(fFovDegrees * 0.5f / 180.0f * 3.14159f);
-		mat4x4 matrix;
-		matrix.m[0][0] = fAspectRatio * fFovRad;
-		matrix.m[1][1] = fFovRad;
-		matrix.m[2][2] = fFar / (fFar - fNear);
-		matrix.m[3][2] = (-fFar * fNear) / (fFar - fNear);
-		matrix.m[2][3] = 1.0f;
-		matrix.m[3][3] = 0.0f;
-		return matrix;
-	}
-
-	mat4x4 Matrix_MultiplyMatrix(mat4x4 &m1, mat4x4 &m2)
-	{
-		mat4x4 matrix;
-		for (int c = 0; c < 4; c++)
-			for (int r = 0; r < 4; r++)
-				matrix.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
-		return matrix;
-	}
-
-	mat4x4 Matrix_PointAt(Vec3d &pos, Vec3d &target, Vec3d &up)
-	{
-		// Calculate new forward direction
-		Vec3d newForward = target - pos;
-		newForward = newForward.normalise();
-
-		// Calculate new Up direction
-		Vec3d a = newForward * up.dot_product(newForward);
-		Vec3d newUp = up - a;
-		newUp = newUp.normalise();
-
-		// New Right direction is easy, its just cross product
-		Vec3d newRight = newUp.cross_product(newForward);
-
-		// Construct Dimensioning and Translation Matrix	
-		mat4x4 matrix;
-		matrix.m[0][0] = newRight.x;	matrix.m[0][1] = newRight.y;	matrix.m[0][2] = newRight.z;	matrix.m[0][3] = 0.0f;
-		matrix.m[1][0] = newUp.x;		matrix.m[1][1] = newUp.y;		matrix.m[1][2] = newUp.z;		matrix.m[1][3] = 0.0f;
-		matrix.m[2][0] = newForward.x;	matrix.m[2][1] = newForward.y;	matrix.m[2][2] = newForward.z;	matrix.m[2][3] = 0.0f;
-		matrix.m[3][0] = pos.x;			matrix.m[3][1] = pos.y;			matrix.m[3][2] = pos.z;			matrix.m[3][3] = 1.0f;
-		return matrix;
-
-	}
-
-	mat4x4 Matrix_QuickInverse(mat4x4 &m) // Only for Rotation/Translation Matrices
-	{
-		mat4x4 matrix;
-		matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
-		matrix.m[1][0] = m.m[0][1]; matrix.m[1][1] = m.m[1][1]; matrix.m[1][2] = m.m[2][1]; matrix.m[1][3] = 0.0f;
-		matrix.m[2][0] = m.m[0][2]; matrix.m[2][1] = m.m[1][2]; matrix.m[2][2] = m.m[2][2]; matrix.m[2][3] = 0.0f;
-		matrix.m[3][0] = -(m.m[3][0] * matrix.m[0][0] + m.m[3][1] * matrix.m[1][0] + m.m[3][2] * matrix.m[2][0]);
-		matrix.m[3][1] = -(m.m[3][0] * matrix.m[0][1] + m.m[3][1] * matrix.m[1][1] + m.m[3][2] * matrix.m[2][1]);
-		matrix.m[3][2] = -(m.m[3][0] * matrix.m[0][2] + m.m[3][1] * matrix.m[1][2] + m.m[3][2] * matrix.m[2][2]);
-		matrix.m[3][3] = 1.0f;
-		return matrix;
-	}
-
 
 	Vec3d Vector_IntersectPlane(Vec3d &plane_p, Vec3d &plane_n, Vec3d &lineStart, Vec3d &lineEnd){
 		plane_n = plane_n.normalise();
@@ -329,6 +200,7 @@ private:
 		return 0;
 	}
 
+
 public:
 	bool OnUserCreate()
 	{
@@ -336,7 +208,7 @@ public:
 		meshCube.LoadFromObjectFile(filename);
 
 		// Projection Matrix
-		matProj = Matrix_MakeProjection(90.0f, (float)windowHeight / (float)windowWidth, 0.1f, 1000.0f);
+		matProj = Mat4::makeProjection(90.0f, (float)windowHeight / (float)windowWidth, 0.1f, 1000.0f);
 		return true;
 	}
 
@@ -344,30 +216,29 @@ public:
 
 		// Set up "World Tranmsform" though not updating theta 
 		// makes this a bit redundant
-		mat4x4 matRotZ, matRotX;
-		matRotZ = Matrix_MakeRotationZ(0.0f);
-		matRotX = Matrix_MakeRotationX(0.0f);
+		Mat4 matRotZ = Mat4::makeRotationZ(0.0f);
+		Mat4 matRotX = Mat4::makeRotationX(0.0f);
 
-		mat4x4 matTrans;
-		matTrans = Matrix_MakeTranslation(0.0f, 0.0f, 5.0f);
 
-		mat4x4 matWorld;
-		matWorld = Matrix_MakeIdentity();	// Form World Matrix
-		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX); // Transform by rotation
-		matWorld = Matrix_MultiplyMatrix(matWorld, matTrans); // Transform by translation
+		Mat4 matTrans = Mat4::makeTranslation(0.0f, 0.0f, 5.0f);
+
+
+		Mat4 matWorld = Mat4::makeIdentity();	// Form World Matrix
+		matWorld = matRotZ * matRotX; // Transform by rotation
+		matWorld = matWorld * matTrans; // Transform by translation
 
 		// Create "Point At" Matrix for camera
 		Vec3d vUp = { 0,1,0 };
 		Vec3d vTarget = { 0,0,1 };
-		mat4x4 matRotY = Matrix_MakeRotationY(fYaw);
-		mat4x4 matRotX2 = Matrix_MakeRotationX(fPitch);
-		mat4x4 matCameraRot = Matrix_MultiplyMatrix(matRotX2, matRotY);
-		vLookDir = Matrix_MultiplyVector(matCameraRot, vTarget);
+		Mat4 matRotY = Mat4::makeRotationY(fYaw);
+		Mat4 matRotX2 = Mat4::makeRotationX(fPitch);
+		Mat4 matCameraRot = matRotX2 * matRotY;
+		vLookDir = matCameraRot * vTarget;
 		vTarget = vCamera + vLookDir;
-		mat4x4 matCamera = Matrix_PointAt(vCamera, vTarget, vUp);
+		Mat4 matCamera = Mat4::pointAt(vCamera, vTarget, vUp);
 
 		// Make view matrix from camera
-		mat4x4 matView = Matrix_QuickInverse(matCamera);
+		Mat4 matView = matCamera.quickInverse();
 
 		// Store triagles for rastering later
 		vector<Triangle> vecTrianglesToRaster;
@@ -378,9 +249,9 @@ public:
 			Triangle triProjected, triTransformed, triViewed;
 
 			// World Matrix Transform
-			triTransformed.p[0] = Matrix_MultiplyVector(matWorld, tri.p[0]);
-			triTransformed.p[1] = Matrix_MultiplyVector(matWorld, tri.p[1]);
-			triTransformed.p[2] = Matrix_MultiplyVector(matWorld, tri.p[2]);
+			triTransformed.p[0] = matWorld * tri.p[0];
+			triTransformed.p[1] = matWorld * tri.p[1];
+			triTransformed.p[2] = matWorld * tri.p[2];
 
 			// Calculate Triangle Normal
 			Vec3d normal, line1, line2;
@@ -419,9 +290,9 @@ public:
 				triTransformed.col = dp;
 
 				// Convert World Space --> View Space
-				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
-				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
-				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
+				triViewed.p[0] = matView * triTransformed.p[0];
+				triViewed.p[1] = matView * triTransformed.p[1];
+				triViewed.p[2] = matView * triTransformed.p[2];
 				triViewed.col = triTransformed.col;
 
 				// Clip Viewed Triangle against near plane, this could form two additional
@@ -435,9 +306,9 @@ public:
 				for (int n = 0; n < nClippedTriangles; n++)
 				{
 					// Project triangles from 3D --> 2D
-					triProjected.p[0] = Matrix_MultiplyVector(matProj, clipped[n].p[0]);
-					triProjected.p[1] = Matrix_MultiplyVector(matProj, clipped[n].p[1]);
-					triProjected.p[2] = Matrix_MultiplyVector(matProj, clipped[n].p[2]);
+					triProjected.p[0] = matProj * clipped[n].p[0];
+					triProjected.p[1] = matProj * clipped[n].p[1];
+					triProjected.p[2] = matProj * clipped[n].p[2];
 					triProjected.col = clipped[n].col;
 
 					// Scale into view, we moved the normalising into cartesian space
