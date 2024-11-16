@@ -1,4 +1,4 @@
-# Project Title: 3D Graphics Engine
+# 3D Graphics Engine
 
 This project is an implementation of a 3D Graphics Engine, originally developed by Javidx9 on YouTube. The original version was designed to work in the console, but this version has been adapted to use OpenGL, a powerful cross-platform graphics API.
 
