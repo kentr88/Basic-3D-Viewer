@@ -40,8 +40,8 @@ $(OBJ_DIR):
 
 # Clean rule to remove compiled files and executable
 clean:
-	del /Q $(OBJ_DIR)\* 2>nul
-	del /Q $(EXEC) 2>nul
+	rm -f $(OBJ_DIR)\* 
+	rm -f $(EXEC)
 
 # Phony target to run the executable
 run: $(EXEC)

@@ -16,7 +16,20 @@ This project is an implementation of a 3D Graphics Engine, originally developed 
 
 ![1713925104265](image/read/1713925104265.png)
 
-## Compilation
+## Clone
+
+Make sure to clone recursively to add Imgui submodule.
+
+git clone --recurse-submodules https://github.com/kentr88/Basic-3D-Viewer.git
+
+If there are issues with cloning, you may need to increase the git buffer size.
+
+* git config --global http.postBuffer 524288000
+
+Or alternatively clone Imgui seperately.
+
+* git clone --depth=1 https://github.com/ocornut/imgui.git lib/imgui
+* ompilation
 
 The project uses a Makefile for compilation. To compile the project, use the following command:
 
