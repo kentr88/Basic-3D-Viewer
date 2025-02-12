@@ -14,6 +14,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+// include imgui
+#include "lib/imgui/imgui.h"
+#include "lib/imgui/backends/imgui_impl_glfw.h"
+#include "lib/imgui/backends/imgui_impl_opengl3.h"
+
+
+
 class Mat4;
 
 class Vec3d{
@@ -261,6 +268,8 @@ public:
 	Camera(Vec3d pos) : pos(pos) {
 		//look at z by default
 		lookDir = Vec3d(0, 0, 1);
+		fYaw = 0;
+		fPitch = 0;
 	}
 
 

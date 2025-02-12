@@ -1,57 +1,6 @@
 ﻿/*
-OneLoneCoder.com - 3D Graphics Part #3 - Cameras & Clipping
-"Tredimensjonal Grafikk" - @Javidx9
-
-License
-~~~~~~~
-One Lone Coder Console Game Engine  Copyright (C) 2018  Javidx9
-This program comes with ABSOLUTELY NO WARRANTY.
-This is free software, and you are welcome to redistribute it
-under certain conditions; See license for details.
-Original works located at:
-https://www.github.com/onelonecoder
-https://www.onelonecoder.com
-https://www.youtube.com/javidx9
-GNU GPLv3
-https://github.com/OneLoneCoder/videos/blob/master/LICENSE
-
-From Javidx9 :)
-~~~~~~~~~~~~~~~
-Hello! Ultimately I don't care what you use this for. It's intended to be
-educational, and perhaps to the oddly minded - a little bit of fun.
-Please hack this, change it and use it in any way you see fit. You acknowledge
-that I am not responsible for anything bad that happens as a result of
-your actions. However this code is protected by GNU GPLv3, see the license in the
-github repo. This means you must attribute me if you use it. You can view this
-license here: https://github.com/OneLoneCoder/videos/blob/master/LICENSE
-Cheers!
-
-Background
-~~~~~~~~~~
-3D Graphics is an interesting, visually pleasing suite of algorithms. This is the
-first video in a series that will demonstrate the fundamentals required to 
-build your own software based 3D graphics systems.
-
-Video
-~~~~~
-https://youtu.be/ih20l3pJoeU
-https://youtu.be/XgMWc6LumG4
-https://youtu.be/HXSuNxpCzdM
-
-Author
-~~~~~~
-Twitter: @javidx9
-Blog: http://www.onelonecoder.com
-Discord: https://discord.gg/WhwHUMV
-
-
-
-Last Updated: 14/08/2018
-*/
-
-
-/*
 This is a 3D Graphics engine that has been adapted from working in the console to basic openGL using GLFW3. It is based on the work of Javidx9.
+https://www.github.com/onelonecoder
 
 Compile
 g++ -o run main.cpp -lglfw3 -lkernel32 -lopengl32 -lglu32 -lglew32 -Wall -lwinmm -Werror -pedantic
@@ -229,8 +178,30 @@ public:
 			exit(-1);
 		}
 
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+
 		// Make the window's context current
 		glfwMakeContextCurrent(window);
+
+
+		// Initialize ImGui
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		// io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+		// io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
+	
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		// ImGui::StyleColorsClassic();
+	
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGui_ImplOpenGL3_Init("#version 130"); // GLSL version
+	
 
 		
 		// Create user resources as part of this thread
@@ -238,6 +209,7 @@ public:
 			std::cerr << "Failed on user create" << std::endl;
 			exit(-1);
 		}
+
 	}
 
 	bool Render(float fElapsedTime){
@@ -420,118 +392,134 @@ public:
 
 		int fps_update = 0;
 		double fps_elapsed_time = 0.0;
+		double average_fps = 0.0;
 
 		while (!glfwWindowShouldClose(window)){
 			// Run as fast as possible
 			
-				// Handle Timing
-				tp2 = std::chrono::system_clock::now();
-				std::chrono::duration<float> elapsedTime = tp2 - tp1;
-				tp1 = tp2;
-				float fElapsedTime = elapsedTime.count();
+			// Handle Timing
+			tp2 = std::chrono::system_clock::now();
+			std::chrono::duration<float> elapsedTime = tp2 - tp1;
+			tp1 = tp2;
+			float fElapsedTime = elapsedTime.count();
 
-				//handle mouse - use change in mouse position to rotate camera
-				double mouseX, mouseY;
-				glfwGetCursorPos(window, &mouseX, &mouseY);
-				double xoffset = mouseX - lastX;
-				double yoffset = lastY - mouseY; // reversed since y-coordinates go from bottom to top
-				lastX = mouseX;
-				lastY = mouseY;
+			// Update average FPS
+			fps_update++;
+			if (fps_update > 50){
+				average_fps = 50.0f / fps_elapsed_time;
+				fps_update = 0;
+				fps_elapsed_time = 0.0;
+			} else {
+				fps_elapsed_time += fElapsedTime;
+			}
 
-				float sensitivity = 5.0f;
-				xoffset *= sensitivity;
-				yoffset *= sensitivity;
+			//handle mouse - use change in mouse position to rotate camera
+			double mouseX, mouseY;
+			glfwGetCursorPos(window, &mouseX, &mouseY);
+			double xoffset = mouseX - lastX;
+			double yoffset = lastY - mouseY; // reversed since y-coordinates go from bottom to top
+			lastX = mouseX;
+			lastY = mouseY;
 
-				camera.fYaw += xoffset * fElapsedTime;
-				camera.fPitch += yoffset * fElapsedTime;
+			float sensitivity = 5.0f;
+			xoffset *= sensitivity;
+			yoffset *= sensitivity;
 
-
-				//stop pitch going too high or low
-				if(camera.fPitch > 1.5f){
-					camera.fPitch = 1.5f;
-				}
-
-				if(camera.fPitch < -1.5f){
-					camera.fPitch = -1.5f;
-				}
-
-				Vec3d vForward = camera.lookDir * (8.0f * fElapsedTime);
-				Vec3d vRight = { camera.lookDir.z, 0, -camera.lookDir.x };
-				vRight = vRight * (8.0f * fElapsedTime);
-
-				Vec3d vUp = { 0,1,0 };
-				vUp = vUp * (8.0f * fElapsedTime);
-
-				// Standard FPS Control scheme, but turn instead of strafe
-				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
-					camera.pos = camera.pos + vForward;
-				}
-
-				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
-					camera.pos = camera.pos - vForward;
-				}
-
-				if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
-					//pan camera left
-					camera.pos = camera.pos + vRight;
-				}
-
-				if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
-					//pan camera right
-					camera.pos = camera.pos - vRight;
-				}
-
-				if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS){
-					//move camera up
-					camera.pos.y += 8.0f * fElapsedTime;
-				}
-
-				if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
-					//move camera down
-					camera.pos.y -= 8.0f * fElapsedTime;
-				}
-
-				//escape
-				if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
-					glfwSetWindowShouldClose(window, true);
-				}
-					
-
-				// Handle Frame Update
-
-				//update screen
-				// Enable the vertex array functionality
-				glEnableClientState(GL_VERTEX_ARRAY);
-
-				// Set the background color to white
-				glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT);
-
-				Render(fElapsedTime);
+			camera.fYaw += xoffset * fElapsedTime;
+			camera.fPitch += yoffset * fElapsedTime;
 
 
-				// Disable the vertex array functionality
-				glDisableClientState(GL_VERTEX_ARRAY);
-				// Swap buffers
-				glfwSwapBuffers(window);
-				// Poll for and process events
-				glfwPollEvents();
+			//stop pitch going too high or low
+			if(camera.fPitch > 1.5f){
+				camera.fPitch = 1.5f;
+			}
 
-				// Update Title Bar
-				fps_update++;
-				if (fps_update > 50){
-					double average_fps = 50.0f / fps_elapsed_time;
-					// Update window title with FPS
-					std::string windowTitle = "GLFW game engine - FPS: " + std::to_string(average_fps);
-					glfwSetWindowTitle(window, windowTitle.c_str());
-					fps_update = 0;
-					fps_elapsed_time = 0.0;
-				} else {
-					fps_elapsed_time += fElapsedTime;
-				}
+			if(camera.fPitch < -1.5f){
+				camera.fPitch = -1.5f;
+			}
+
+			Vec3d vForward = camera.lookDir * (8.0f * fElapsedTime);
+			Vec3d vRight = { camera.lookDir.z, 0, -camera.lookDir.x };
+			vRight = vRight * (8.0f * fElapsedTime);
+
+			Vec3d vUp = { 0,1,0 };
+			vUp = vUp * (8.0f * fElapsedTime);
+
+			// Standard FPS Control scheme, but turn instead of strafe
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) camera.pos = camera.pos + vForward;
+			
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) camera.pos = camera.pos - vForward;
+			
+			//pan camera left
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) camera.pos = camera.pos + vRight;
+			
+			//pan camera right
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) camera.pos = camera.pos - vRight;
+		
+			//move camera up
+			if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) camera.pos.y += 8.0f * fElapsedTime;
+			
+			//move camera down
+			if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) camera.pos.y -= 8.0f * fElapsedTime;
+			
+			//escape
+			if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+			
+
+
+			// Start the ImGui frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+			// Set ImGui window position and size
+			ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(250, 80), ImGuiCond_Always);
+		
+			// Your ImGui UI code here
+			ImGui::Begin("Camera and Performance", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+			ImGui::Text("Position: (%.2f, %.2f, %.2f)", camera.pos.x, camera.pos.y, camera.pos.z);
+			ImGui::Text("Yaw = %.2f, Pitch = %.2f", camera.fYaw, camera.fPitch);
+			ImGui::Text("FPS: %.1f (%.1f)",  average_fps, ImGui::GetIO().Framerate);
+			ImGui::End();
+			
+			// Rendering
+			ImGui::Render();
+
+			// Handle Frame Update
+
+			//update screen
+			// Enable the vertex array functionality
+			glEnableClientState(GL_VERTEX_ARRAY);
+
+			// Set the background color to white
+			glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			// render 3d scene
+			Render(fElapsedTime);
+
+
+			// Render ImGui ontop
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
+			// Disable the vertex array functionality
+			glDisableClientState(GL_VERTEX_ARRAY);
+			// Swap buffers
+			glfwSwapBuffers(window);
+			// Poll for and process events
+			glfwPollEvents();
+
+			
 
 				
 		}
+
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+
 
 		// Clean up and exit
     	glfwTerminate();
